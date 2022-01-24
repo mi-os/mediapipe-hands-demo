@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>MediaPipe Hands Demo</title>
+    <!-- Read 3 libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <!-- WebCam(Input) -->
+      <video id="input"></video>
+
+      <!-- Visualized image of the recognized hand shape. -->
+      <canvas id="output" width="600" height="400"></canvas>
+    </div>
+    <button id="start">start</button>
+    <button id="stop">stop</button>
+
+    <script>
+      const video = document.getElementById('input');
+      const canvas = document.getElementById('output');
+      const ctx = canvas.getContext('2d');
+
+      // Loading related files.
+      const config = {
+        locateFile: (file) =>
+          `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+      };
+      const hands = new Hands(config);
+
+      // Enabling hands.js to use video from a camera.
+      const camera = new Camera(video, {
+        onFrame: async () => {
+          await hands.send({ image: video });
+        },
+        width: 600,
+        height: 400,
+      });
+
+      hands.setOptions({
+        maxNumHands: 2, // Maximum number of hands to be detected
+        modelComplexity: 1, // Landmark detection accuracy(0 or 1)
+        minDetectionConfidence: 0.5, // Confidence level for detecting hand(0.0 ~ 1.0)
+        minTrackingConfidence: 0.5, // Confidence level of landmark tracking(0.0 ~ 1.0)
+      });
+
+      // Get the results of shape recognition.
+      hands.onResults((results) => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+        if (results.multiHandLandmarks) {
+          results.multiHandLandmarks.forEach((marks) => {
+            // Visualize the framework with green lines.
+            drawConnectors(ctx, marks, HAND_CONNECTIONS, { color: '#0f0' });
+
+            // Visualize landmarks with color red.
+            drawLandmarks(ctx, marks, { color: '#f00' });
+          });
+        }
+      });
+
+      // Recognition start/end button
+      document
+        .getElementById('start')
+        .addEventListener('click', () => camera.start());
+      document
+        .getElementById('stop')
+        .addEventListener('click', () => camera.stop());
+    </script>
+  </body>
+</html>
